@@ -3,6 +3,8 @@ from task.models import Task
 
 
 class TaskSerializer(serializers.ModelSerializer):
+    description = serializers.CharField(required=False, allow_blank=True)
+
     class Meta:
         model = Task
         fields = [

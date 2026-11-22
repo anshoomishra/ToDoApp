@@ -9,15 +9,14 @@ from rest_framework import status
 class TaskListCreateView(APIView):
     authentication_classes = [BasicAuthentication]
     def get(self, request):
-        user = request.user
-        tasks = Task.objects.filter(owner=user)
+        tasks = Task.objects.filter(user=request.user)
         serializer = TaskSerializer(tasks, many=True)
         return Response(serializer.data)
 
     def post(self, request):
         serializer = TaskSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save(owner=request.user)
+            serializer.save(user=request.user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -25,7 +24,7 @@ class TaskDetailView(APIView):
     authentication_classes = [BasicAuthentication]
     def get_object(self, pk):
         try:
-            return Task.objects.get(pk=pk, owner=self.request.user)
+            return Task.objects.get(pk=pk, user=self.request.user)
         except Task.DoesNotExist:
             return None
 
@@ -40,7 +39,22 @@ class TaskDetailView(APIView):
         task = self.get_object(pk)
         if task is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
+        required_fields = {"title", "description", "status"}
+        missing_fields = required_fields.difference(request.data)
+        if missing_fields:
+            errors = {field: ["This field is required."] for field in missing_fields}
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
         serializer = TaskSerializer(task, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def patch(self, request, pk):
+        task = self.get_object(pk)
+        if task is None:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        serializer = TaskSerializer(task, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -51,4 +65,4 @@ class TaskDetailView(APIView):
         if task is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
         task.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(status=status.HTTP_200_OK)

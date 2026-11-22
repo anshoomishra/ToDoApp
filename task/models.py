@@ -12,7 +12,7 @@ class Task(models.Model):
         choices=Status.choices,
         default=Status.PENDING
     )
-    owner = models.ForeignKey('user.User', related_name='tasks', on_delete=models.CASCADE)
+    user = models.ForeignKey('user.User', related_name='tasks', on_delete=models.CASCADE)
     title = models.CharField(max_length=200)
     description = models.TextField()
     completed = models.BooleanField(default=False)
